@@ -11,6 +11,16 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        // Brand colors
+        primary: {
+          DEFAULT: "#87A96B", // sage
+          foreground: "#ffffff",
+        },
+        accent: {
+          DEFAULT: "#CC7357", // terracotta
+          foreground: "#ffffff",
+        },
+        parchment: "#F8F4E9", // background
       },
     },
   },

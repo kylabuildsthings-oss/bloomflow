@@ -1,0 +1,79 @@
+"use client";
+
+import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
+
+export function Header() {
+  const { data: session, status } = useSession();
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background">
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <Link
+          href="/"
+          className="text-xl font-semibold text-primary transition-colors hover:text-primary/80"
+        >
+          BloomFlow
+        </Link>
+
+        <div className="flex items-center gap-3 sm:gap-6 flex-wrap justify-end">
+          <Link
+            href="/"
+            className="text-sm font-medium text-foreground transition-colors hover:text-accent"
+          >
+            Home
+          </Link>
+          <Link
+            href="/help"
+            className="text-sm font-medium text-foreground transition-colors hover:text-accent"
+          >
+            Help
+          </Link>
+
+          {status === "loading" ? (
+            <span className="text-sm text-foreground/70">Loading...</span>
+          ) : session ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="text-sm font-medium text-foreground transition-colors hover:text-accent"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/admin/insights"
+                className="text-sm font-medium text-foreground/70 transition-colors hover:text-accent"
+              >
+                Admin
+              </Link>
+              <span className="hidden sm:inline text-sm text-foreground/70 truncate max-w-[140px]">
+                {session.user?.email}
+              </span>
+              <button
+                onClick={() => signOut()}
+                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90"
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/auth/signin"
+                className="text-sm font-medium text-foreground transition-colors hover:text-accent"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/auth/signup"
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+              >
+                Sign up
+              </Link>
+            </>
+          )}
+        </div>
+      </nav>
+    </header>
+  );
+}
