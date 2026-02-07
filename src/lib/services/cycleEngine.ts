@@ -110,7 +110,7 @@ export async function runCycleEngine(
   }
 
   // Log predictions to Opik
-  if (process.env.OPIK_API_KEY) {
+  if (process.env.OPIK_API_KEY || process.env.COMET_API_KEY) {
     try {
       const { opikClient } = await import("@/lib/opik");
       const trace = opikClient.trace({

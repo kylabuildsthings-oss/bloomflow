@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log event to Opik - include test_group and cyclePhase (logWorkout for workout logs)
-    if (process.env.OPIK_API_KEY) {
+    if (process.env.OPIK_API_KEY || process.env.COMET_API_KEY) {
       try {
         const { opikClient } = await import("@/lib/opik");
         const traceName = workout_type ? "logWorkout" : "daily_log_created";

@@ -35,7 +35,7 @@ Create a `.env.local` file (use `.env.local.template` as a guide) and configure:
 | `GEMINI_API_KEY` | One of these | Google Gemini API key (fallback when OpenAI quota is exceeded) |
 | `NEXTAUTH_SECRET` | Yes | Run `npx auth secret` to generate |
 | `NEXTAUTH_URL` | Yes | `http://localhost:3000` (or your deployed URL) |
-| `OPIK_API_KEY` | No | Comet/Opik API key for LLM tracing |
+| `OPIK_API_KEY` or `COMET_API_KEY` | No | Comet/Opik API key for LLM tracing (same key from Comet dashboard) |
 | `RESEND_API_KEY` | For password reset | Resend API key for forgot-password emails |
 | `ADMIN_EMAIL` | No | Email that can access Admin tab (defaults to demo@bloomflow.com) |
 | `DEMO_USER_EMAIL` | No | Demo account email (defaults to demo@bloomflow.com) |

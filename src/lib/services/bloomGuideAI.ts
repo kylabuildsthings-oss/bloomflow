@@ -50,12 +50,18 @@ function getSystemPrompt(input: BloomGuideInput): string {
 
 const USER_MESSAGE = "What workout should I do today? Give one workout type and a brief reason.";
 
+type ProviderResult =
+  | { success: true; text: string; model: string }
+  | { success: false; error: string };
+
 async function tryOpenAI(
   systemPrompt: string,
   input: BloomGuideInput
-): Promise<{ text: string; model: string } | null> {
+): Promise<ProviderResult> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    return { success: false, error: "OPENAI_API_KEY is not set" };
+  }
 
   const client = new OpenAI({ apiKey });
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -71,17 +77,18 @@ async function tryOpenAI(
     });
     const text =
       completion.choices[0]?.message?.content?.trim() ?? "No suggestion available.";
-    return { text, model: "gpt-3.5-turbo" };
-  } catch {
-    return null;
+    return { success: true, text, model: "gpt-3.5-turbo" };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
   }
 }
 
-async function tryGemini(
-  systemPrompt: string
-): Promise<{ text: string; model: string } | null> {
+async function tryGemini(systemPrompt: string): Promise<ProviderResult> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    return { success: false, error: "GEMINI_API_KEY is not set" };
+  }
 
   try {
     const ai = new GoogleGenAI({ apiKey });
@@ -91,9 +98,10 @@ async function tryGemini(
       contents: USER_MESSAGE,
     });
     const text = (response.text ?? "").trim() || "No suggestion available.";
-    return { text, model: "gemini-1.5-flash" };
-  } catch {
-    return null;
+    return { success: true, text, model: "gemini-1.5-flash" };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
   }
 }
 
@@ -103,7 +111,7 @@ async function logToOpik(
   result: { text: string; model: string } | null,
   error?: string
 ) {
-  if (!process.env.OPIK_API_KEY) return;
+  if (!process.env.OPIK_API_KEY && !process.env.COMET_API_KEY) return;
   try {
     const { opikClient } = await import("@/lib/opik");
     const trace = opikClient.trace({
@@ -128,6 +136,18 @@ async function logToOpik(
   }
 }
 
+function buildErrorMessage(openAIResult: ProviderResult, geminiResult: ProviderResult | null): string {
+  const parts: string[] = [];
+  if (!openAIResult.success) {
+    parts.push(`OpenAI: ${openAIResult.error}`);
+  }
+  if (geminiResult && !geminiResult.success) {
+    parts.push(`Gemini: ${geminiResult.error}`);
+  }
+  if (parts.length === 0) return "Unable to get AI suggestion.";
+  return parts.join(" — ");
+}
+
 /**
  * Call OpenAI first; on failure (e.g. quota), fall back to Gemini.
  * Requires OPENAI_API_KEY or GEMINI_API_KEY.
@@ -138,23 +158,28 @@ export async function runBloomGuideAI(
   const systemPrompt = getSystemPrompt(input);
 
   if (!process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY) {
-    throw new Error("Configure OPENAI_API_KEY or GEMINI_API_KEY in .env.local");
+    throw new Error(
+      "Configure OPENAI_API_KEY or GEMINI_API_KEY in .env.local. At least one is required."
+    );
   }
 
-  let result = await tryOpenAI(systemPrompt, input);
+  const openAIResult = await tryOpenAI(systemPrompt, input);
 
-  if (!result && process.env.GEMINI_API_KEY) {
-    result = await tryGemini(systemPrompt);
+  if (openAIResult.success) {
+    await logToOpik(input, systemPrompt, openAIResult);
+    return { suggestion: openAIResult.text };
   }
 
-  if (!result) {
-    const err =
-      "Unable to get AI suggestion. Check your OpenAI and Gemini API keys and quotas.";
-    await logToOpik(input, systemPrompt, null, err);
-    throw new Error(err);
+  const geminiResult = process.env.GEMINI_API_KEY
+    ? await tryGemini(systemPrompt)
+    : null;
+
+  if (geminiResult?.success) {
+    await logToOpik(input, systemPrompt, geminiResult);
+    return { suggestion: geminiResult.text };
   }
 
-  await logToOpik(input, systemPrompt, result);
-
-  return { suggestion: result.text };
+  const err = buildErrorMessage(openAIResult, geminiResult);
+  await logToOpik(input, systemPrompt, null, err);
+  throw new Error(err);
 }
