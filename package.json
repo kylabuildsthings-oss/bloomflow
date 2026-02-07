@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:migrate": "node scripts/run-migrations.js"
   },
   "dependencies": {
+    "@google/genai": "^1.40.0",
     "@supabase/supabase-js": "^2.95.3",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.33.0",
@@ -19,7 +21,8 @@
     "react": "^18",
     "react-dom": "^18",
     "react-hot-toast": "^2.6.0",
-    "recharts": "^3.7.0"
+    "recharts": "^3.7.0",
+    "resend": "^6.9.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -28,6 +31,7 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
+    "pg": "^8.18.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"

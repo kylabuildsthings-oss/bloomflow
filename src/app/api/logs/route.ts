@@ -42,6 +42,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const demoEmail = process.env.DEMO_USER_EMAIL ?? "demo@bloomflow.com";
+    if (session.user.email === demoEmail) {
+      return NextResponse.json(
+        { error: "Demo account cannot save check-ins. Sign up for an account to track your data." },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const parsed = parseLogBody(body);
     if (!parsed || !parsed.date) {
@@ -111,8 +119,9 @@ export async function POST(request: NextRequest) {
         .select("id, test_group")
         .single();
       if (insertError || !newProfile) {
+        const detail = insertError?.message ?? "Unknown error";
         return NextResponse.json(
-          { error: "Failed to create profile" },
+          { error: "Failed to create profile", detail },
           { status: 500 }
         );
       }

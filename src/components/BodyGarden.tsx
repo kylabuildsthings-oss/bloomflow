@@ -31,12 +31,16 @@ function getLast7Days(): string[] {
   return dates;
 }
 
+type BloomGuideResult = { suggestion: string; workoutType?: string; reason?: string };
+
 export function BodyGarden() {
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [checkinModalOpen, setCheckinModalOpen] = useState(false);
   const [chartModalOpen, setChartModalOpen] = useState(false);
   const [chartMetric, setChartMetric] = useState<MetricType>("sleep_quality");
+  const [bloomGuideResult, setBloomGuideResult] = useState<BloomGuideResult | null>(null);
+  const [bloomGuideLoading, setBloomGuideLoading] = useState(false);
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -86,6 +90,25 @@ export function BodyGarden() {
   function openChart(metric: MetricType) {
     setChartMetric(metric);
     setChartModalOpen(true);
+  }
+
+  async function fetchBloomGuideSuggestion() {
+    setBloomGuideLoading(true);
+    setBloomGuideResult(null);
+    try {
+      const res = await fetch("/api/ai/coach");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "Failed to get suggestion");
+      }
+      setBloomGuideResult(data);
+    } catch (err) {
+      setBloomGuideResult({
+        suggestion: err instanceof Error ? err.message : "Unable to load suggestion. Check that OPENAI_API_KEY is set.",
+      });
+    } finally {
+      setBloomGuideLoading(false);
+    }
   }
 
   return (
@@ -157,6 +180,26 @@ export function BodyGarden() {
               No check-in yet today. Track your wellness to tend your Body Garden.
             </p>
           )}
+
+          {/* BloomGuide AI */}
+          <div className="mt-8 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-5">
+            <h3 className="mb-2 text-base font-semibold text-primary">BloomGuide AI</h3>
+            <p className="mb-4 text-sm text-foreground/70">
+              Get a personalized workout suggestion based on your cycle phase and recent check-ins.
+            </p>
+            <button
+              onClick={fetchBloomGuideSuggestion}
+              disabled={bloomGuideLoading}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+            >
+              {bloomGuideLoading ? "Getting suggestion..." : "Get today's suggestion"}
+            </button>
+            {bloomGuideResult && (
+              <div className="mt-4 rounded-lg border border-primary/20 bg-white p-4 text-sm text-neutral-800">
+                <p className="whitespace-pre-wrap">{bloomGuideResult.suggestion}</p>
+              </div>
+            )}
+          </div>
         </>
       )}
 

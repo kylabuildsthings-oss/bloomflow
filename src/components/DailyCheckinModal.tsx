@@ -66,7 +66,8 @@ export function DailyCheckinModal({ isOpen, onClose, onSuccess }: Props) {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error ?? "Failed to save log");
+        const msg = err.detail ? `${err.error}: ${err.detail}` : (err.error ?? "Failed to save log");
+        throw new Error(msg);
       }
 
       toast.success("Daily check-in saved!");

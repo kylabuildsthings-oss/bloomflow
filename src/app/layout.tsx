@@ -31,7 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased bg-background text-foreground`}
       >
         <Providers>
-          <Header />
+          <Header adminEmail={process.env.ADMIN_EMAIL ?? process.env.DEMO_USER_EMAIL ?? "demo@bloomflow.com"} />
           <main className="flex-1">{children}</main>
         </Providers>
       </body>

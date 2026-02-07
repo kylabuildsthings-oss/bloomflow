@@ -1,74 +1,147 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BloomFlow
 
-## Getting Started
+A women's wellness app with AI-powered workout suggestions, cycle tracking, and daily check-ins. Built with Next.js, Supabase, NextAuth, OpenAI, and Gemini.
 
-First, run the development server:
+---
+
+## Quick Start
 
 ```bash
+# Install dependencies
+npm install
+
+# Copy environment template and fill in your keys
+cp .env.local.template .env.local
+
+# Run migrations in Supabase (see Supabase Setup below)
+
+# Start the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment Variables
+
+Create a `.env.local` file (use `.env.local.template` as a guide) and configure:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Your Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (Project Settings → API) |
+| `OPENAI_API_KEY` | One of these | OpenAI API key (for BloomGuide AI) |
+| `GEMINI_API_KEY` | One of these | Google Gemini API key (fallback when OpenAI quota is exceeded) |
+| `NEXTAUTH_SECRET` | Yes | Run `npx auth secret` to generate |
+| `NEXTAUTH_URL` | Yes | `http://localhost:3000` (or your deployed URL) |
+| `OPIK_API_KEY` | No | Comet/Opik API key for LLM tracing |
+| `RESEND_API_KEY` | For password reset | Resend API key for forgot-password emails |
+| `ADMIN_EMAIL` | No | Email that can access Admin tab (defaults to demo@bloomflow.com) |
+| `DEMO_USER_EMAIL` | No | Demo account email (defaults to demo@bloomflow.com) |
+
+**BloomGuide AI** uses OpenAI first; if OpenAI fails (e.g. quota exceeded), it automatically falls back to Gemini. You need at least one of `OPENAI_API_KEY` or `GEMINI_API_KEY`.
+
+---
 
 ## Supabase Setup
 
 1. Create a project at [supabase.com](https://supabase.com)
-2. Copy `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from Project Settings > API
-3. Run the migration in Supabase Dashboard > SQL Editor:
+2. Copy your **Project URL** and **service_role key** from Project Settings → API
+3. Add them to `.env.local` as `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
+4. Run the migrations:
+   - Open **SQL Editor** in your Supabase project
+   - Copy the entire contents of `supabase/run-all-migrations.sql`
+   - Paste and run it
 
-```sql
--- Copy contents from supabase/migrations/001_initial_schema.sql
-```
+This creates the `profiles`, `daily_logs`, and `password_reset_tokens` tables with Row-Level Security.
 
-This creates the `profiles` and `daily_logs` tables with Row-Level Security (RLS).
+---
+
+## Features
+
+### Authentication
+- **Sign up** — Create an account with email and password
+- **Sign in** — Log in with your credentials
+- **Forgot password** — Request a reset link via email (requires `RESEND_API_KEY`)
+
+### Dashboard & Body Garden
+- **Daily check-in** — Log sleep, energy, stress, menstrual flow, workouts, and notes
+- **Body Garden** — Visual summary of Sleep Flower, Energy Sunflower, and Workout Vine (7-day averages)
+- **BloomGuide AI** — Get personalized workout suggestions based on your cycle phase and recent check-ins. Uses OpenAI with Gemini as fallback.
+
+### Homepage
+- **Logged out** — Sign in, Sign up, and Dashboard buttons
+- **Logged in** — Plant illustration and “Go to Dashboard” button
+
+### Admin
+- The **Admin** tab is only visible when signed in as the admin user (`ADMIN_EMAIL`, defaults to demo account)
+- Regular users do not see the Admin tab
+
+### Demo Account
+- Sign in with `demo@bloomflow.com` / `demo123` for quick testing
+- Demo account **cannot** save daily check-ins (sign up for a real account to track data)
+
+---
 
 ## API Routes
 
-- **POST /api/logs** — Save a daily log (authenticated). Body: `{ date, sleep_quality?, energy?, stress?, workout_type?, workout_rating?, symptoms?, menstrual_flow? }`. Ratings are 1–5.
-- **GET /api/logs** — Fetch the authenticated user's log history.
-- **GET /api/ai/coach** — BloomGuide AI workout suggestion based on cycle phase, latest log, and profile (requires `OPENAI_API_KEY`).
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/auth/signup` | POST | Create account |
+| `/api/auth/forgot-password` | POST | Send password reset email |
+| `/api/auth/reset-password` | POST | Reset password with token |
+| `/api/logs` | GET | Fetch your log history |
+| `/api/logs` | POST | Save a daily log |
+| `/api/profile` | GET | Get profile and onboarding status |
+| `/api/profile` | PATCH | Save onboarding and consent |
+| `/api/ai/coach` | GET | BloomGuide AI workout suggestion |
+| `/api/admin/insights` | GET | Admin analytics (admin only) |
 
-### BloomGuide & Cycle Engine
+---
 
-- `cycleEngine`: Takes `lastPeriodStart` (YYYY-MM-DD) and `averageCycleLength`. Calculates current phase (Menstrual, Follicular, Ovulation, Luteal) and predicts next 5 days. Logs to Opik.
-- `bloomGuideAI`: Uses cycle phase, latest log (sleep/energy/stress), fitness goal, and test group (A/B). Calls OpenAI gpt-3.5-turbo with a strict system prompt. Logs full trace to Opik.
+## Database Migrations
 
-Profile `cycle_data` (JSONB) format: `{ lastPeriodStart, averageCycleLength, fitnessGoal }`. `test_group` on profile: `motivation_A` (encouraging) or `motivation_B` (nurturing).
+To run migrations via CLI (requires `DATABASE_URL` in `.env.local`):
 
-## A/B Testing & Admin
+```bash
+npm run db:migrate
+```
 
-- **POST /api/auth/signup** — Creates profile with random `test_group` (motivation_A or motivation_B) and password hash. Requires Supabase.
-- **BloomGuide AI** — Uses `test_group` for tone: motivation_A = encouraging/energetic, motivation_B = nurturing/accepting.
-- **Opik events** — All log events include `test_group` and `cyclePhase`. Workout logs use `logWorkout` trace name.
-- **Admin /admin/insights** — Protected; only `ADMIN_EMAIL` can access. Bar chart (workout completion by group & phase) and symptoms table. Set `ADMIN_EMAIL` in .env.local (defaults to demo user).
+Otherwise, run `supabase/run-all-migrations.sql` manually in the Supabase SQL Editor.
 
-## Onboarding & Help
+---
 
-- **Onboarding** — After first login, users complete a 3-step flow: (1) cycle data (last period, average length), (2) fitness goal (Build Consistency, Get Stronger, Lose Weight, Improve Running, Reduce Stress), (3) medical disclaimer (required) and data consent toggles (store locally, personalize AI, share anonymized). Stored in `profiles.cycle_data`, `profiles.consent`, `profiles.onboarding_completed`.
-- **GET /api/profile** — Returns profile and `needsOnboarding` status. **PATCH /api/profile** — Saves onboarding/consent. Creates profile if missing (e.g., demo user).
-- **/help** — FAQs about cycle syncing and contact (support@bloomflow.app). Fully responsive on mobile.
+## Tech Stack
+
+- **Framework:** Next.js 14 (App Router)
+- **Auth:** NextAuth.js (Credentials provider)
+- **Database:** Supabase (PostgreSQL)
+- **AI:** OpenAI (gpt-3.5-turbo) + Google Gemini (gemini-1.5-flash) fallback
+- **Tracing:** Opik (optional)
+- **Email:** Resend (for password reset)
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── api/          # API routes (auth, logs, profile, ai/coach)
+│   ├── auth/         # Sign in, sign up, forgot/reset password
+│   ├── dashboard/    # Main dashboard with Body Garden
+│   ├── admin/        # Admin insights (admin only)
+│   └── help/         # FAQ page
+├── components/       # UI components
+├── lib/              # Supabase, Opik, BloomGuide AI, cycle engine
+└── auth.ts           # NextAuth config
+```
+
+---
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Supabase Docs](https://supabase.com/docs)
+- [NextAuth.js](https://next-auth.js.org/)

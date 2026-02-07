@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 
-export function Header() {
+type Props = { adminEmail?: string };
+
+export function Header({ adminEmail }: Props) {
   const { data: session, status } = useSession();
+  const showAdmin = adminEmail && session?.user?.email === adminEmail;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background">
@@ -40,12 +43,14 @@ export function Header() {
               >
                 Dashboard
               </Link>
-              <Link
-                href="/admin/insights"
-                className="text-sm font-medium text-foreground/70 transition-colors hover:text-accent"
-              >
-                Admin
-              </Link>
+              {showAdmin && (
+                <Link
+                  href="/admin/insights"
+                  className="text-sm font-medium text-foreground transition-colors hover:text-accent"
+                >
+                  Admin
+                </Link>
+              )}
               <span className="hidden sm:inline text-sm text-foreground/70 truncate max-w-[140px]">
                 {session.user?.email}
               </span>

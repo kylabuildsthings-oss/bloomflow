@@ -102,22 +102,22 @@ export function OnboardingFlow({ onComplete }: Props) {
               className="space-y-4"
             >
               <h2 className="text-xl font-semibold text-primary">Cycle Data</h2>
-              <p className="text-sm text-foreground/70">
+              <p className="text-sm text-neutral-600">
                 Help us personalize your experience (optional).
               </p>
               <div>
-                <label className="mb-1 block text-sm font-medium text-foreground">
+                <label className="mb-1 block text-sm font-medium text-neutral-800">
                   Last period start date
                 </label>
                 <input
                   type="date"
                   value={lastPeriodStart}
                   onChange={(e) => setLastPeriodStart(e.target.value)}
-                  className="w-full rounded-lg border border-primary/30 px-4 py-2.5 text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-lg border border-neutral-300 px-4 py-2.5 text-neutral-900 placeholder:text-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-foreground">
+                <label className="mb-1 block text-sm font-medium text-neutral-800">
                   Average cycle length (days)
                 </label>
                 <input
@@ -126,7 +126,7 @@ export function OnboardingFlow({ onComplete }: Props) {
                   max={45}
                   value={averageCycleLength}
                   onChange={(e) => setAverageCycleLength(Number(e.target.value) || 28)}
-                  className="w-full rounded-lg border border-primary/30 px-4 py-2.5 text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-lg border border-neutral-300 px-4 py-2.5 text-neutral-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <button
@@ -149,7 +149,7 @@ export function OnboardingFlow({ onComplete }: Props) {
               <h2 className="text-xl font-semibold text-primary">
                 New Year&apos;s Fitness Goal
               </h2>
-              <p className="text-sm text-foreground/70">
+              <p className="text-sm text-neutral-600">
                 Select your primary goal for BloomGuide AI coaching.
               </p>
               <div className="space-y-2">
@@ -160,7 +160,7 @@ export function OnboardingFlow({ onComplete }: Props) {
                     className={`block w-full rounded-lg border px-4 py-3 text-left text-sm font-medium transition-colors ${
                       fitnessGoal === goal
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-primary/30 text-foreground hover:border-primary/50"
+                        : "border-neutral-300 text-neutral-800 hover:border-primary/50"
                     }`}
                   >
                     {goal}
@@ -170,7 +170,7 @@ export function OnboardingFlow({ onComplete }: Props) {
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep(1)}
-                  className="flex-1 rounded-xl border border-primary/30 px-4 py-3 font-medium text-foreground hover:bg-primary/5"
+                  className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 font-medium text-neutral-800 hover:bg-neutral-50"
                 >
                   Back
                 </button>
@@ -196,8 +196,8 @@ export function OnboardingFlow({ onComplete }: Props) {
                 Legal & Data Consent
               </h2>
 
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <p className="text-sm text-foreground/90">
+              <div className="rounded-lg border border-neutral-200 bg-primary/5 p-4">
+                <p className="text-sm text-neutral-800">
                   <strong>Medical Disclaimer:</strong> BloomFlow is a wellness tool, not a medical
                   device. It does not diagnose, treat, or prevent any medical condition. Always
                   consult a healthcare provider for medical advice. Do not use BloomFlow to replace
@@ -210,15 +210,15 @@ export function OnboardingFlow({ onComplete }: Props) {
                     onChange={(e) => setMedicalDisclaimerAccepted(e.target.checked)}
                     className="h-4 w-4 rounded border-primary/30 accent-primary"
                   />
-                  <span className="text-sm font-medium text-foreground">
+                  <span className="text-sm font-medium text-neutral-800">
                     I understand and accept this disclaimer *
                   </span>
                 </label>
               </div>
 
               <div className="space-y-3">
-                <label className="flex cursor-pointer items-center justify-between rounded-lg border border-primary/20 px-4 py-3">
-                  <span className="text-sm text-foreground">Store my data locally</span>
+                <label className="flex cursor-pointer items-center justify-between rounded-lg border border-neutral-200 px-4 py-3">
+                  <span className="text-sm text-neutral-800">Store my data locally</span>
                   <input
                     type="checkbox"
                     checked={consent.storeLocally}
@@ -228,8 +228,8 @@ export function OnboardingFlow({ onComplete }: Props) {
                     className="h-5 w-5 rounded accent-primary"
                   />
                 </label>
-                <label className="flex cursor-pointer items-center justify-between rounded-lg border border-primary/20 px-4 py-3">
-                  <span className="text-sm text-foreground">
+                <label className="flex cursor-pointer items-center justify-between rounded-lg border border-neutral-200 px-4 py-3">
+                  <span className="text-sm text-neutral-800">
                     Use my data to personalize AI coaching
                   </span>
                   <input
@@ -241,8 +241,8 @@ export function OnboardingFlow({ onComplete }: Props) {
                     className="h-5 w-5 rounded accent-primary"
                   />
                 </label>
-                <label className="flex cursor-pointer items-center justify-between rounded-lg border border-primary/20 px-4 py-3">
-                  <span className="text-sm text-foreground">
+                <label className="flex cursor-pointer items-center justify-between rounded-lg border border-neutral-200 px-4 py-3">
+                  <span className="text-sm text-neutral-800">
                     Share anonymized data to improve the app
                   </span>
                   <input
@@ -259,7 +259,7 @@ export function OnboardingFlow({ onComplete }: Props) {
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep(2)}
-                  className="flex-1 rounded-xl border border-primary/30 px-4 py-3 font-medium text-foreground hover:bg-primary/5"
+                  className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 font-medium text-neutral-800 hover:bg-neutral-50"
                 >
                   Back
                 </button>
