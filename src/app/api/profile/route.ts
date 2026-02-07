@@ -3,10 +3,26 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+type ResolutionMilestone = {
+  date: string;
+  week: number;
+  phase: string;
+  title: string;
+  description: string;
+};
+
+type ResolutionPlan = {
+  startDate: string;
+  endDate: string;
+  goal: string;
+  milestones: ResolutionMilestone[];
+};
+
 type CycleData = {
   lastPeriodStart?: string;
   averageCycleLength?: number;
   fitnessGoal?: string;
+  resolutionPlan?: ResolutionPlan;
 };
 
 type Consent = {
@@ -112,6 +128,9 @@ export async function PATCH(request: NextRequest) {
     }
     if (fitnessGoal != null || bodyCycleData?.fitnessGoal != null) {
       mergedCycleData.fitnessGoal = fitnessGoal ?? bodyCycleData?.fitnessGoal;
+    }
+    if (bodyCycleData?.resolutionPlan != null) {
+      mergedCycleData.resolutionPlan = bodyCycleData.resolutionPlan;
     }
 
     if (!existing) {

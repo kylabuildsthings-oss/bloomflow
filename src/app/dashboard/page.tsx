@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { BodyGarden } from "@/components/BodyGarden";
+import { ResolutionTracker } from "@/components/ResolutionTracker";
 import { OnboardingWrapper } from "@/components/OnboardingWrapper";
 
 export default async function DashboardPage() {
@@ -20,7 +21,10 @@ export default async function DashboardPage() {
         <p className="mb-6 text-foreground/80 sm:mb-8 text-sm sm:text-base">
           Welcome back, {session.user?.email}. You are signed in.
         </p>
-        <BodyGarden />
+        <div className="space-y-6">
+          <ResolutionTracker />
+          <BodyGarden />
+        </div>
       </div>
     </OnboardingWrapper>
   );

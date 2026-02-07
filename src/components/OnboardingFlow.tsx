@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import {
+  generateResolutionPlan,
+  type ResolutionPlan,
+} from "@/lib/services/resolutionPlanGenerator";
 
 const FITNESS_GOALS = [
   "Build Consistency",
@@ -27,6 +31,7 @@ export function OnboardingFlow({ onComplete }: Props) {
   const [lastPeriodStart, setLastPeriodStart] = useState("");
   const [averageCycleLength, setAverageCycleLength] = useState(28);
   const [fitnessGoal, setFitnessGoal] = useState<string>("");
+  const [resolutionPlan, setResolutionPlan] = useState<ResolutionPlan | null>(null);
   const [medicalDisclaimerAccepted, setMedicalDisclaimerAccepted] = useState(false);
   const [consent, setConsent] = useState<ConsentState>({
     storeLocally: true,
@@ -34,6 +39,17 @@ export function OnboardingFlow({ onComplete }: Props) {
     shareAnonymized: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const planPreview = useMemo(() => {
+    if (!fitnessGoal) return null;
+    const start = new Date().toISOString().slice(0, 10);
+    return generateResolutionPlan(
+      start,
+      fitnessGoal,
+      lastPeriodStart || undefined,
+      averageCycleLength || 28
+    );
+  }, [fitnessGoal, lastPeriodStart, averageCycleLength]);
 
   async function handleComplete() {
     if (!medicalDisclaimerAccepted) {
@@ -50,6 +66,7 @@ export function OnboardingFlow({ onComplete }: Props) {
             lastPeriodStart: lastPeriodStart || undefined,
             averageCycleLength: averageCycleLength || 28,
             fitnessGoal: fitnessGoal || undefined,
+            resolutionPlan: resolutionPlan ?? planPreview ?? undefined,
           },
           onboarding_completed: true,
           consent: {
@@ -82,7 +99,7 @@ export function OnboardingFlow({ onComplete }: Props) {
         className="w-full max-w-lg rounded-2xl border border-primary/20 bg-white shadow-xl shadow-primary/10 p-6 sm:p-8"
       >
         <div className="mb-6 flex items-center gap-2">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
               className={`h-2 flex-1 rounded-full ${
@@ -175,7 +192,10 @@ export function OnboardingFlow({ onComplete }: Props) {
                   Back
                 </button>
                 <button
-                  onClick={() => setStep(3)}
+                  onClick={() => {
+                    if (planPreview) setResolutionPlan(planPreview);
+                    setStep(3);
+                  }}
                   className="flex-1 rounded-xl bg-primary px-4 py-3 font-medium text-white hover:bg-primary/90"
                 >
                   Next
@@ -187,6 +207,51 @@ export function OnboardingFlow({ onComplete }: Props) {
           {step === 3 && (
             <motion.div
               key="step3"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-4"
+            >
+              <h2 className="text-xl font-semibold text-primary">
+                Your Resolution Plan
+              </h2>
+              <p className="text-sm text-neutral-600">
+                A 12-week, cycle-aware plan for <strong>{fitnessGoal}</strong>. Milestones align with your predicted cycle phases.
+              </p>
+              {planPreview && (
+                <div className="max-h-48 overflow-y-auto space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  {planPreview.milestones.map((m) => (
+                    <div key={m.week} className="rounded-lg border border-primary/10 bg-white px-3 py-2 text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-primary">Week {m.week}</span>
+                        <span className="text-xs text-neutral-500">{m.phase}</span>
+                      </div>
+                      <p className="text-neutral-800">{m.title.replace(`Week ${m.week}: `, "")}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">{m.date}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setStep(2)}
+                  className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 font-medium text-neutral-800 hover:bg-neutral-50"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={() => setStep(4)}
+                  className="flex-1 rounded-xl bg-primary px-4 py-3 font-medium text-white hover:bg-primary/90"
+                >
+                  Next
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 4 && (
+            <motion.div
+              key="step4"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -258,7 +323,7 @@ export function OnboardingFlow({ onComplete }: Props) {
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(3)}
                   className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 font-medium text-neutral-800 hover:bg-neutral-50"
                 >
                   Back

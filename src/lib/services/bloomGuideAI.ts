@@ -54,10 +54,7 @@ type ProviderResult =
   | { success: true; text: string; model: string }
   | { success: false; error: string };
 
-async function tryOpenAI(
-  systemPrompt: string,
-  input: BloomGuideInput
-): Promise<ProviderResult> {
+async function tryOpenAI(systemPrompt: string): Promise<ProviderResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return { success: false, error: "OPENAI_API_KEY is not set" };
@@ -94,8 +91,8 @@ async function tryGemini(systemPrompt: string): Promise<ProviderResult> {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: "gemini-1.5-flash",
-      systemInstruction: systemPrompt,
       contents: USER_MESSAGE,
+      config: { systemInstruction: systemPrompt },
     });
     const text = (response.text ?? "").trim() || "No suggestion available.";
     return { success: true, text, model: "gemini-1.5-flash" };
@@ -163,7 +160,7 @@ export async function runBloomGuideAI(
     );
   }
 
-  const openAIResult = await tryOpenAI(systemPrompt, input);
+  const openAIResult = await tryOpenAI(systemPrompt);
 
   if (openAIResult.success) {
     await logToOpik(input, systemPrompt, openAIResult);

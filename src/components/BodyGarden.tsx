@@ -1,9 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
+import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { DailyCheckinModal } from "./DailyCheckinModal";
-import { MetricChartModal, type MetricType } from "./MetricChartModal";
+import type { MetricType } from "./MetricChartModal";
+
+const MetricChartModal = dynamic(
+  () => import("./MetricChartModal").then((m) => ({ default: m.MetricChartModal })),
+  { ssr: false, loading: () => <div className="text-sm text-foreground/60">Loading chart...</div> }
+);
 import { SleepFlower } from "./plants/SleepFlower";
 import { EnergySunflower } from "./plants/EnergySunflower";
 import { WorkoutVine } from "./plants/WorkoutVine";
@@ -103,9 +110,9 @@ export function BodyGarden() {
       }
       setBloomGuideResult(data);
     } catch (err) {
-      setBloomGuideResult({
-        suggestion: err instanceof Error ? err.message : "Unable to load suggestion. Check that OPENAI_API_KEY is set.",
-      });
+      const msg = err instanceof Error ? err.message : "Unable to load suggestion. Check that OPENAI_API_KEY is set.";
+      toast.error(msg);
+      setBloomGuideResult({ suggestion: msg });
     } finally {
       setBloomGuideLoading(false);
     }

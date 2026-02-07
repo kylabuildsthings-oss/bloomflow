@@ -3,6 +3,29 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+/** Two-proportion z-test for A/B significance. Returns p-value (two-tailed). */
+function computeTwoProportionPValue(
+  x1: number,
+  n1: number,
+  x2: number,
+  n2: number
+): number | null {
+  if (n1 < 1 || n2 < 1) return null;
+  const p1 = x1 / n1;
+  const p2 = x2 / n2;
+  const pPooled = (x1 + x2) / (n1 + n2);
+  const se = Math.sqrt(pPooled * (1 - pPooled) * (1 / n1 + 1 / n2));
+  if (se < 1e-10) return null;
+  const z = Math.abs(p1 - p2) / se;
+  const t = 1 / (1 + 0.2316419 * z);
+  const d =
+    0.3989423 *
+    Math.exp((-z * z) / 2) *
+    t *
+    (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return Math.min(1, Math.max(0, 2 * (1 - d)));
+}
+
 const ADMIN_EMAIL =
   process.env.ADMIN_EMAIL ?? process.env.DEMO_USER_EMAIL ?? "demo@bloomflow.com";
 
@@ -130,9 +153,48 @@ export async function GET() {
       }));
     });
 
+    // A/B test: workout completion by group for p-value
+    let totalA = 0,
+      withWorkoutA = 0,
+      totalB = 0,
+      withWorkoutB = 0;
+    for (const log of logsWithGroup) {
+      if (log.test_group === "motivation_A") {
+        totalA += 1;
+        if (log.workout_type) withWorkoutA += 1;
+      } else if (log.test_group === "motivation_B") {
+        totalB += 1;
+        if (log.workout_type) withWorkoutB += 1;
+      }
+    }
+
+    const pValue = computeTwoProportionPValue(withWorkoutA, totalA, withWorkoutB, totalB);
+
+    // Phase Prediction Accuracy: % of logs with cycle_phase populated
+    const logsWithPhase = logsWithGroup.filter((l) => l.cycle_phase && l.cycle_phase !== "Unknown");
+    const phasePredictionAccuracy =
+      logsWithGroup.length > 0
+        ? (logsWithPhase.length / logsWithGroup.length) * 100
+        : 0;
+
+    // AI Suggestion Acceptance Rate: logs with workout / total logs (proxy: user acted on suggestion)
+    const totalLogs = logsWithGroup.length;
+    const logsWithWorkout = logsWithGroup.filter((l) => l.workout_type);
+    const aiSuggestionAcceptanceRate =
+      totalLogs > 0 ? (logsWithWorkout.length / totalLogs) * 100 : 0;
+
     return NextResponse.json({
       workoutChartData,
       symptomsTableData,
+      metrics: {
+        aiSuggestionAcceptanceRate: Math.round(aiSuggestionAcceptanceRate * 10) / 10,
+        phasePredictionAccuracy: Math.round(phasePredictionAccuracy * 10) / 10,
+        abTestPValue: pValue,
+        abTestSummary: {
+          motivation_A: { total: totalA, withWorkout: withWorkoutA },
+          motivation_B: { total: totalB, withWorkout: withWorkoutB },
+        },
+      },
     });
   } catch (err) {
     return NextResponse.json(

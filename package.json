@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:migrate": "node scripts/run-migrations.js"
+    "db:migrate": "node scripts/run-migrations.js",
+    "lighthouse": "npx lighthouse http://localhost:3000 --only-categories=performance,accessibility,best-practices --output=html --output-path=./lighthouse-report.html --chrome-flags='--headless'"
   },
   "dependencies": {
     "@google/genai": "^1.40.0",

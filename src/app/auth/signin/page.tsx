@@ -30,7 +30,6 @@ function SignInForm() {
 
       if (result?.error) {
         setFormError("Invalid email or password");
-        setIsLoading(false);
         return;
       }
 
@@ -38,6 +37,7 @@ function SignInForm() {
       router.refresh();
     } catch {
       setFormError("Something went wrong. Please try again.");
+    } finally {
       setIsLoading(false);
     }
   }

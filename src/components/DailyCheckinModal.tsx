@@ -87,7 +87,7 @@ export function DailyCheckinModal({ isOpen, onClose, onSuccess }: Props) {
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={() => !isSubmitting && onClose()}
         aria-hidden
       />
 
@@ -98,7 +98,7 @@ export function DailyCheckinModal({ isOpen, onClose, onSuccess }: Props) {
         aria-labelledby="daily-checkin-title"
         className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-primary/20 bg-background shadow-xl shadow-primary/10"
       >
-        <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8" aria-busy={isSubmitting}>
           <h2
             id="daily-checkin-title"
             className="text-xl font-semibold text-primary mb-6"
