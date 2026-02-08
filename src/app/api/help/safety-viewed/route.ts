@@ -28,7 +28,8 @@ export async function POST() {
     }
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    console.error("[Opik] safety-viewed trace failed:", err instanceof Error ? err.message : err);
     return NextResponse.json({ ok: true }); // Non-fatal: always succeed
   }
 }

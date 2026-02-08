@@ -35,12 +35,14 @@ Create a `.env.local` file (use `.env.local.template` as a guide) and configure:
 | `GEMINI_API_KEY` | One of these | Google Gemini API key (fallback when OpenAI quota is exceeded) |
 | `NEXTAUTH_SECRET` | Yes | Run `npx auth secret` to generate |
 | `NEXTAUTH_URL` | Yes | `http://localhost:3000` (or your deployed URL) |
-| `OPIK_API_KEY` or `COMET_API_KEY` | No | Comet/Opik API key for LLM tracing (same key from Comet dashboard) |
+| `OPIK_API_KEY` or `COMET_API_KEY` | Yes (for LLM tracing) | Comet/Opik API key to feed traces into LLM observability (same key from Comet dashboard). Required for Judge Dashboard, AI trace viewer, and A/B event logging. |
 | `RESEND_API_KEY` | For password reset | Resend API key for forgot-password emails |
 | `ADMIN_EMAIL` | No | Email that can access Admin tab (defaults to demo@bloomflow.com) |
 | `DEMO_USER_EMAIL` | No | Demo account email (defaults to demo@bloomflow.com) |
 
 **BloomGuide AI** uses OpenAI first; if OpenAI fails (e.g. quota exceeded), it automatically falls back to Gemini. You need at least one of `OPENAI_API_KEY` or `GEMINI_API_KEY`.
+
+**LLM Tracing (Opik):** Set `OPIK_API_KEY` or `COMET_API_KEY` to feed BloomGuide AI traces, user events, and cycle predictions into Opik/Comet. Required for the Judge Dashboard, A/B metrics, and the Opik trace viewer. The app still runs without it, but tracing features will be disabled.
 
 ---
 

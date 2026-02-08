@@ -131,7 +131,8 @@ export async function runCycleEngine(
       });
       trace.end();
       await opikClient.flush();
-    } catch {
+    } catch (err) {
+      console.error("[Opik] cycleEngine trace failed:", err instanceof Error ? err.message : err);
       // Non-fatal
     }
   }

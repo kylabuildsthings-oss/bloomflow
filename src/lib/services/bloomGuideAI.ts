@@ -128,8 +128,9 @@ async function logToOpik(
     });
     trace.end();
     await opikClient.flush();
-  } catch {
-    // Non-fatal
+  } catch (err) {
+    console.error("[Opik] bloomGuideAI trace failed:", err instanceof Error ? err.message : err);
+    // Non-fatal: AI suggestion still works
   }
 }
 

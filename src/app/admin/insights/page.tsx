@@ -19,7 +19,12 @@ export default async function AdminInsightsPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <h1 className="mb-8 text-2xl font-semibold text-primary">Admin Insights</h1>
+      <header className="mb-10 border-b border-primary/20 pb-6">
+        <h1 className="text-3xl font-bold text-primary">Judge Dashboard</h1>
+        <p className="mt-1 text-sm text-foreground/70">
+          Opik-powered metrics: workout completion by phase, A/B comparison, AI acceptance
+        </p>
+      </header>
       <AdminInsightsClient />
     </div>
   );

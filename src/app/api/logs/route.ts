@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { runCycleEngine } from "@/lib/services/cycleEngine";
+import { logUserEvent } from "@/lib/opik";
 
 const ratingSchema = { min: 1, max: 5 };
 
@@ -159,28 +160,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Log event to Opik - include test_group and cyclePhase (logWorkout for workout logs)
-    if (process.env.OPIK_API_KEY || process.env.COMET_API_KEY) {
-      try {
-        const { opikClient } = await import("@/lib/opik");
-        const traceName = workout_type ? "logWorkout" : "daily_log_created";
-        const trace = opikClient.trace({
-          name: traceName,
-          input: {
-            user_email: session.user.email,
-            date: parsed.date,
-            test_group: testGroup,
-            cyclePhase,
-            log_data: { menstrual_flow, sleep_quality, energy, stress, workout_type, workout_rating, symptoms },
-          },
-          output: { log_id: log?.id, success: true },
-        });
-        trace.end();
-        await opikClient.flush();
-      } catch {
-        // Non-fatal: log creation succeeded
-      }
-    }
+    // Log user action to Opik for A/B testing
+    const eventName = workout_type ? "logWorkout" : "daily_log_created";
+    const actionType = workout_type ? "workout_completion" : "daily_checkin";
+    await logUserEvent(eventName, {
+      userId: profileId,
+      testGroup: testGroup ?? undefined,
+      cyclePhase,
+      actionType,
+      date: parsed.date,
+      log_data: {
+        menstrual_flow,
+        sleep_quality,
+        energy,
+        stress,
+        workout_type,
+        workout_rating,
+        symptoms,
+      },
+      log_id: log?.id,
+    });
 
     return NextResponse.json(log);
   } catch (err) {
