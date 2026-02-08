@@ -44,6 +44,7 @@ type OpikMetrics = {
   bloomGuideCount: number;
   userEventCount: number;
   error?: string;
+  dummyData?: boolean;
 };
 
 type SymptomRow = {
@@ -293,8 +294,13 @@ export function AdminInsightsClient() {
           {opikMetrics.bloomGuideCount ?? 0} AI suggestions
         </p>
       )}
-      {opikMetrics?.error && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+      {opikMetrics?.dummyData && !isViewingDemo && (
+        <div className="rounded-lg border-2 border-dashed border-primary/40 bg-primary/10 px-4 py-2 text-sm text-primary dark:bg-primary/20">
+          <strong>Sample data</strong> — Charts show illustrative data when real data is sparse. Add check-ins and AI suggestions to see live metrics.
+        </div>
+      )}
+      {opikMetrics?.error && !opikMetrics?.dummyData && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
           {opikMetrics.error} — Using Supabase data as fallback.
         </div>
       )}

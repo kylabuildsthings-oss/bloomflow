@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import {
+  DUMMY_WORKOUT_CHART_DATA,
+  DUMMY_SYMPTOMS_TABLE,
+  DUMMY_METRICS,
+} from "@/lib/admin-dummy-data";
 
 /** Two-proportion z-test for A/B significance. Returns p-value (two-tailed). */
 function computeTwoProportionPValue(
@@ -183,18 +188,29 @@ export async function GET() {
     const aiSuggestionAcceptanceRate =
       totalLogs > 0 ? (logsWithWorkout.length / totalLogs) * 100 : 0;
 
+    const hasRealData = totalLogs >= 5 || logsWithWorkout.length > 0;
+
+    const workoutChartDataOut = hasRealData ? workoutChartData : DUMMY_WORKOUT_CHART_DATA;
+    const symptomsTableDataOut = hasRealData
+      ? symptomsTableData
+      : DUMMY_SYMPTOMS_TABLE;
+    const metricsOut = hasRealData
+      ? {
+          aiSuggestionAcceptanceRate: Math.round(aiSuggestionAcceptanceRate * 10) / 10,
+          phasePredictionAccuracy: Math.round(phasePredictionAccuracy * 10) / 10,
+          abTestPValue: pValue,
+          abTestSummary: {
+            motivation_A: { total: totalA, withWorkout: withWorkoutA },
+            motivation_B: { total: totalB, withWorkout: withWorkoutB },
+          },
+        }
+      : DUMMY_METRICS;
+
     return NextResponse.json({
-      workoutChartData,
-      symptomsTableData,
-      metrics: {
-        aiSuggestionAcceptanceRate: Math.round(aiSuggestionAcceptanceRate * 10) / 10,
-        phasePredictionAccuracy: Math.round(phasePredictionAccuracy * 10) / 10,
-        abTestPValue: pValue,
-        abTestSummary: {
-          motivation_A: { total: totalA, withWorkout: withWorkoutA },
-          motivation_B: { total: totalB, withWorkout: withWorkoutB },
-        },
-      },
+      workoutChartData: workoutChartDataOut,
+      symptomsTableData: symptomsTableDataOut,
+      metrics: metricsOut,
+      ...(hasRealData ? {} : { dummyData: true }),
     });
   } catch (err) {
     return NextResponse.json(
