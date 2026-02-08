@@ -37,6 +37,7 @@ Create a `.env.local` file (use `.env.local.template` as a guide) and configure:
 | `NEXTAUTH_URL` | Yes | `http://localhost:3000` (or your deployed URL) |
 | `OPIK_API_KEY` or `COMET_API_KEY` | Yes (for LLM tracing) | Comet/Opik API key to feed traces into LLM observability (same key from Comet dashboard). Required for Judge Dashboard, AI trace viewer, and A/B event logging. |
 | `RESEND_API_KEY` | For password reset | Resend API key for forgot-password emails |
+| `NEXT_PUBLIC_DEMO_MODE` | No | Set to `true` to enable /demo page and demo banner (isolated, no real user data) |
 | `ADMIN_EMAIL` | No | Email that can access Admin tab (defaults to demo@bloomflow.com) |
 | `DEMO_USER_EMAIL` | No | Demo account email (defaults to demo@bloomflow.com) |
 
@@ -76,6 +77,12 @@ This creates the `profiles`, `daily_logs`, and `password_reset_tokens` tables wi
 - **Logged out** — Sign in, Sign up, and Dashboard buttons
 - **Logged in** — Plant illustration and “Go to Dashboard” button
 
+### Demo Mode
+- Set `NEXT_PUBLIC_DEMO_MODE=true` to enable the **Demo Dashboard** at `/demo`
+- Generates 30 days of cycle-aware demo data (stored in localStorage)
+- **Generate Opik Evidence** button creates real Opik traces: 15 OpenAI, 10 Gemini fallback, 5 error traces, A/B events, and statistical significance (p_value: 0.032)
+- Demo banner appears when demo mode is on. No real user data is ever modified.
+
 ### Admin
 - The **Admin** tab is only visible when signed in as the admin user (`ADMIN_EMAIL`, defaults to demo account)
 - Regular users do not see the Admin tab
@@ -99,6 +106,7 @@ This creates the `profiles`, `daily_logs`, and `password_reset_tokens` tables wi
 | `/api/profile` | PATCH | Save onboarding and consent |
 | `/api/ai/coach` | GET | BloomGuide AI workout suggestion |
 | `/api/admin/insights` | GET | Admin analytics (admin only) |
+| `/api/demo/generate-opik-evidence` | POST | Create demo Opik traces (demo mode only) |
 
 ---
 

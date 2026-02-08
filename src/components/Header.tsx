@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 
+const isDemoMode =
+  process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.DEMO_MODE === "true";
+
 type Props = { adminEmail?: string };
 
 export function Header({ adminEmail }: Props) {
@@ -32,6 +35,14 @@ export function Header({ adminEmail }: Props) {
           >
             Help
           </Link>
+          {isDemoMode && (
+            <Link
+              href="/demo"
+              className="text-sm font-medium text-amber-700 transition-colors hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200"
+            >
+              Demo
+            </Link>
+          )}
 
           {status === "loading" ? (
             <span className="text-sm text-foreground/70">Loading...</span>

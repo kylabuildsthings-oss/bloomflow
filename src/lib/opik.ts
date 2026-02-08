@@ -1,19 +1,27 @@
 import { Opik } from "opik";
+import { mockOpik } from "./mock-opik";
 
 const apiKey = process.env.OPIK_API_KEY ?? process.env.COMET_API_KEY;
+const isDemoMode =
+  process.env.DEMO_MODE === "true" || process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 /**
  * Opik SDK client for LLM tracing, evaluation, and monitoring.
- * Only instantiated when OPIK_API_KEY or COMET_API_KEY is set (avoids build-time errors).
+ * Uses mock when DEMO_MODE=true; otherwise real SDK when OPIK_API_KEY or COMET_API_KEY is set.
  * @see https://www.comet.com/docs/opik/integrations/typescript-sdk
  */
-export const opikClient = apiKey
-  ? new Opik({
-      apiKey,
-      apiUrl: process.env.OPIK_URL_OVERRIDE ?? "https://www.comet.com/opik/api",
-      projectName: process.env.OPIK_PROJECT_NAME ?? "bloomflow",
-    })
-  : (null as unknown as Opik);
+export const opikClient = isDemoMode
+  ? (mockOpik as unknown as Opik)
+  : apiKey
+    ? new Opik({
+        apiKey,
+        apiUrl: process.env.OPIK_URL_OVERRIDE ?? "https://www.comet.com/opik/api",
+        projectName: process.env.OPIK_PROJECT_NAME ?? "bloomflow",
+      })
+    : (null as unknown as Opik);
+
+/** Mock Opik helpers for demo judge review (getDemoTraces, clearDemoTraces) */
+export { mockOpik };
 
 export type UserEventMetadata = {
   userId?: string;

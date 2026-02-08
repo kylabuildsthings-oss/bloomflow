@@ -53,7 +53,6 @@ export async function GET() {
     const url = new URL(`${OPIK_URL}/v1/private/traces`);
     url.searchParams.set("project_name", PROJECT_NAME);
     url.searchParams.set("size", "200");
-    url.searchParams.set("sorting", "start_time:desc");
 
     const headers: Record<string, string> = {
       Accept: "application/json",

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { DemoBanner } from "@/components/DemoBanner";
 import { Header } from "@/components/Header";
 import { Providers } from "@/components/Providers";
 
@@ -33,6 +34,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased bg-background text-foreground`}
       >
         <Providers>
+          <DemoBanner />
           <Header adminEmail={process.env.ADMIN_EMAIL ?? process.env.DEMO_USER_EMAIL ?? "demo@bloomflow.com"} />
           <main className="flex-1">{children}</main>
         </Providers>

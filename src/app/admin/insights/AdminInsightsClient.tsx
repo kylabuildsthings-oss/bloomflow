@@ -11,6 +11,15 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import {
+  hasDemoData,
+  getDemoDataFromStorage,
+  getOpikDemoTracesFromStorage,
+  deriveMetricsFromDemoData,
+} from "@/lib/admin-demo-utils";
+import { generateOpikTraces } from "@/lib/demo-data-generator";
+import { exportJudgeReportPdf } from "@/lib/export-judge-report";
+import type { MockTraceEntry } from "@/lib/mock-opik";
 
 const COLORS = { motivation_A: "#87A96B", motivation_B: "#CC7357" };
 const PHASE_COLORS = ["#87A96B", "#9AB87A", "#B5C99A", "#7B8C6B"];
@@ -90,6 +99,8 @@ export function AdminInsightsClient() {
   const [loading, setLoading] = useState(true);
   const [opikTestResult, setOpikTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
   const [opikTestLoading, setOpikTestLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<"real" | "demo">("real");
+  const [demoDataExists, setDemoDataExists] = useState(false);
 
   const fetchInsights = useCallback(() => {
     Promise.all([
@@ -143,25 +154,38 @@ export function AdminInsightsClient() {
     return () => clearInterval(interval);
   }, [fetchTraces]);
 
-  const aiRate = opikMetrics?.aiAcceptanceRate ?? metrics?.aiSuggestionAcceptanceRate ?? 0;
-  const abData = opikMetrics?.abComparison ?? metrics?.abTestSummary;
-  const phaseData: OpikPhasePoint[] = opikMetrics?.workoutByPhase?.length
-    ? opikMetrics.workoutByPhase
-    : (() => {
-        const byPhase: Record<string, { total: number; withWorkout: number }> = {};
-        for (const d of workoutData) {
-          if (!byPhase[d.phase]) byPhase[d.phase] = { total: 0, withWorkout: 0 };
-          const w = Math.round((d.rate / 100) * d.total);
-          byPhase[d.phase].total += d.total;
-          byPhase[d.phase].withWorkout += w;
-        }
-        return Object.entries(byPhase).map(([phase, { total, withWorkout }]) => ({
-          phase,
-          total,
-          withWorkout,
-          rate: total > 0 ? (withWorkout / total) * 100 : 0,
-        }));
-      })();
+  useEffect(() => {
+    setDemoDataExists(hasDemoData());
+  }, [viewMode, loading]);
+
+  const demoData = getDemoDataFromStorage();
+  const demoMetrics = demoData ? deriveMetricsFromDemoData(demoData) : null;
+
+  const isViewingDemo = viewMode === "demo" && demoMetrics;
+
+  const aiRate = isViewingDemo
+    ? demoMetrics.aiAcceptanceRate
+    : opikMetrics?.aiAcceptanceRate ?? metrics?.aiSuggestionAcceptanceRate ?? 0;
+  const abData = isViewingDemo ? demoMetrics.abComparison : (opikMetrics?.abComparison ?? metrics?.abTestSummary);
+  const phaseData: OpikPhasePoint[] = isViewingDemo
+    ? demoMetrics.phaseData
+    : (opikMetrics?.workoutByPhase?.length
+      ? opikMetrics.workoutByPhase
+      : (() => {
+          const byPhase: Record<string, { total: number; withWorkout: number }> = {};
+          for (const d of workoutData) {
+            if (!byPhase[d.phase]) byPhase[d.phase] = { total: 0, withWorkout: 0 };
+            const w = Math.round((d.rate / 100) * d.total);
+            byPhase[d.phase].total += d.total;
+            byPhase[d.phase].withWorkout += w;
+          }
+          return Object.entries(byPhase).map(([phase, { total, withWorkout }]) => ({
+            phase,
+            total,
+            withWorkout,
+            rate: total > 0 ? (withWorkout / total) * 100 : 0,
+          }));
+        })());
 
   const abChartData = abData
     ? [
@@ -186,6 +210,23 @@ export function AdminInsightsClient() {
       ].filter((d) => d.total > 0)
     : [];
 
+  const handleExportJudgeReport = useCallback(() => {
+    const data = getDemoDataFromStorage();
+    const metrics = data ? deriveMetricsFromDemoData(data) : demoMetrics;
+    if (!metrics) return;
+    let traces: MockTraceEntry[] = getOpikDemoTracesFromStorage();
+    if (traces.length === 0 && data) {
+      const generated = generateOpikTraces(data);
+      traces = generated.map((t) => ({
+        name: t.name,
+        timestamp: new Date().toISOString(),
+        ...t.input,
+        ...t.output,
+      }));
+    }
+    exportJudgeReportPdf(metrics, traces, true);
+  }, [demoMetrics]);
+
   if (loading) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-primary/20 bg-primary/5">
@@ -196,8 +237,57 @@ export function AdminInsightsClient() {
 
   return (
     <div className="space-y-12">
+      {/* View Real Data | View Demo Data toggle */}
+      {demoDataExists && (
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-600 dark:bg-amber-950/30">
+          <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+            Demo data detected in localStorage. Switch view:
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setViewMode("real")}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                viewMode === "real"
+                  ? "bg-primary text-white"
+                  : "bg-white text-foreground hover:bg-primary/10 dark:bg-primary/20"
+              }`}
+            >
+              View Real Data
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("demo")}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                viewMode === "demo"
+                  ? "bg-amber-600 text-white"
+                  : "bg-white text-foreground hover:bg-amber-100 dark:bg-primary/20 dark:hover:bg-amber-900/50"
+              }`}
+            >
+              View Demo Data
+            </button>
+            {viewMode === "demo" && (
+              <button
+                type="button"
+                onClick={handleExportJudgeReport}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+              >
+                Export Judge Report
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* DEMO watermark when viewing demo */}
+      {isViewingDemo && (
+        <div className="rounded-lg border-2 border-amber-400 bg-amber-50 px-4 py-2 text-center text-sm font-bold uppercase tracking-wide text-amber-900 dark:border-amber-500 dark:bg-amber-950/50 dark:text-amber-200">
+          DEMO — 30-day trends from demo data
+        </div>
+      )}
+
       {/* Opik data source badge */}
-      {opikMetrics && (
+      {opikMetrics && !isViewingDemo && (
         <p className="text-xs text-foreground/50">
           Charts powered by Opik traces • {opikMetrics.userEventCount ?? 0} user events •{" "}
           {opikMetrics.bloomGuideCount ?? 0} AI suggestions
@@ -210,8 +300,18 @@ export function AdminInsightsClient() {
       )}
 
       {/* Key Metrics */}
-      <section>
-        <h2 className="mb-4 text-xl font-semibold text-primary">Key Metrics</h2>
+      <section className={isViewingDemo ? "relative" : ""}>
+        {isViewingDemo && (
+          <div
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center opacity-10"
+            aria-hidden
+          >
+            <span className="text-6xl font-bold uppercase tracking-widest text-amber-600">DEMO</span>
+          </div>
+        )}
+        <h2 className="mb-4 text-xl font-semibold text-primary">
+          Key Metrics {isViewingDemo && <span className="text-sm font-normal text-amber-600">(DEMO DATA)</span>}
+        </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-6 shadow-sm">
             <p className="text-sm font-medium text-foreground/70 uppercase tracking-wide">
@@ -222,7 +322,7 @@ export function AdminInsightsClient() {
               % of check-ins where user logged a workout
             </p>
           </div>
-          {metrics && (
+          {!isViewingDemo && metrics && (
             <>
               <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-6 shadow-sm">
                 <p className="text-sm font-medium text-foreground/70 uppercase tracking-wide">
@@ -250,6 +350,21 @@ export function AdminInsightsClient() {
                 </p>
               </div>
             </>
+          )}
+          {isViewingDemo && demoMetrics && (
+            <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-6 shadow-sm">
+              <p className="text-sm font-medium text-foreground/70 uppercase tracking-wide">
+                A/B Test p-value
+              </p>
+              <p className="mt-2 text-3xl font-bold text-primary">
+                {demoMetrics.abTestPValue < 0.001
+                  ? "<0.001"
+                  : demoMetrics.abTestPValue.toFixed(4)}
+              </p>
+              <p className="mt-1 text-xs text-foreground/60">
+                {demoMetrics.abTestPValue < 0.05 ? "Significant" : "Not significant"}
+              </p>
+            </div>
           )}
         </div>
       </section>
@@ -326,9 +441,18 @@ export function AdminInsightsClient() {
       </section>
 
       {/* Chart 1: Workout Completion Rate by Cycle Phase */}
-      <section>
+      <section className={isViewingDemo ? "relative" : ""}>
+        {isViewingDemo && (
+          <div
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center opacity-10"
+            aria-hidden
+          >
+            <span className="text-6xl font-bold uppercase tracking-widest text-amber-600">DEMO</span>
+          </div>
+        )}
         <h2 className="mb-4 text-xl font-semibold text-primary">
           1. Workout Completion Rate by Cycle Phase
+          {isViewingDemo && <span className="ml-2 text-sm font-normal text-amber-600">(DEMO DATA)</span>}
         </h2>
         <p className="mb-4 text-sm text-foreground/60">
           From Opik traces (logWorkout, daily_log_created). Higher = more users completing workouts in that phase.
@@ -378,9 +502,18 @@ export function AdminInsightsClient() {
       </section>
 
       {/* Chart 2: A vs B Comparison */}
-      <section>
+      <section className={isViewingDemo ? "relative" : ""}>
+        {isViewingDemo && (
+          <div
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center opacity-10"
+            aria-hidden
+          >
+            <span className="text-6xl font-bold uppercase tracking-widest text-amber-600">DEMO</span>
+          </div>
+        )}
         <h2 className="mb-4 text-xl font-semibold text-primary">
           2. Workout Completion: Group A vs Group B
+          {isViewingDemo && <span className="ml-2 text-sm font-normal text-amber-600">(DEMO DATA)</span>}
         </h2>
         <p className="mb-4 text-sm text-foreground/60">
           A/B test comparison. Group A: encouraging tone. Group B: nurturing tone.
@@ -432,10 +565,12 @@ export function AdminInsightsClient() {
                     {abData.motivation_B.withWorkout}/{abData.motivation_B.total} workouts
                   </span>
                 </div>
-                {metrics?.abTestPValue != null && (
+                {(isViewingDemo ? demoMetrics?.abTestPValue != null : metrics?.abTestPValue != null) && (
                   <p className="mt-4 border-t border-primary/20 pt-4 text-xs text-foreground/60">
-                    p-value: {metrics.abTestPValue < 0.001 ? "<0.001" : metrics.abTestPValue.toFixed(4)}
-                    {metrics.abTestPValue < 0.05 ? " (significant)" : " (not significant)"}
+                    p-value: {(isViewingDemo ? demoMetrics!.abTestPValue : metrics!.abTestPValue)! < 0.001
+                      ? "<0.001"
+                      : (isViewingDemo ? demoMetrics!.abTestPValue : metrics!.abTestPValue)!.toFixed(4)}
+                    {(isViewingDemo ? demoMetrics!.abTestPValue : metrics!.abTestPValue)! < 0.05 ? " (significant)" : " (not significant)"}
                   </p>
                 )}
               </div>
@@ -445,9 +580,18 @@ export function AdminInsightsClient() {
       </section>
 
       {/* Chart 3: AI Suggestion Acceptance (visual) */}
-      <section>
+      <section className={isViewingDemo ? "relative" : ""}>
+        {isViewingDemo && (
+          <div
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center opacity-10"
+            aria-hidden
+          >
+            <span className="text-6xl font-bold uppercase tracking-widest text-amber-600">DEMO</span>
+          </div>
+        )}
         <h2 className="mb-4 text-xl font-semibold text-primary">
           3. AI Suggestion Acceptance Rate
+          {isViewingDemo && <span className="ml-2 text-sm font-normal text-amber-600">(DEMO DATA)</span>}
         </h2>
         <p className="mb-4 text-sm text-foreground/60">
           % of daily check-ins where the user logged a workout (proxy for acting on AI suggestions).
